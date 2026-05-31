@@ -174,6 +174,20 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
+// ─── SYNC SUPABASE ────────────────────────────────────────────────────────────
+
+async function syncToSupabase(table, data, agent) {
+  try {
+    await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table, action: 'insert', data, agent }),
+    });
+  } catch (e) {
+    console.warn('Sync Supabase échouée:', e.message);
+  }
+}
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 const PILIERS = ['Cash', 'Stratégie', 'Clients', 'Équipe', 'Risques', 'Croissance', 'Résilience'];
@@ -309,6 +323,11 @@ function ModuleEmail({ onToast }) {
       const prompt = `Client: ${form.prenom}${form.entreprise ? ` (${form.entreprise})` : ''} | Secteur: ${form.secteur || 'TPE/PME'} | Offre: ${offre}${form.tarif ? ` | Tarif: ${form.tarif}€/mois` : ''}${form.dateDebut ? ` | Démarrage: ${form.dateDebut}` : ''}${form.contexte ? ` | Contexte: ${form.contexte}` : ''}. Génère l'email de bienvenue.`;
       const data = await callAPI(sys, prompt);
       setResult(data);
+      await syncToSupabase('onboardings', {
+        client_nom: `${form.prenom}${form.entreprise ? ` — ${form.entreprise}` : ''}`,
+        offre: form.offre || '', date_debut: form.dateDebut || new Date().toISOString().slice(0,10),
+        email_genere: true, contrat_genere: false, roadmap_generee: false, checklist_generee: false,
+      }, 'onboarding');
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -390,6 +409,11 @@ function ModuleContrat({ onToast }) {
       const prompt = `Client: ${form.prenom}${form.entreprise ? `, ${form.entreprise}` : ''} | Email: ${form.email || 'à compléter'} | Offre: ${offre} | Tarif: ${form.tarif ? `${form.tarif}€/mois` : 'à définir'} | Démarrage: ${form.dateDebut || 'à définir'} | Secteur: ${form.secteur || 'TPE/PME'}. Génère le contrat simplifié.`;
       const data = await callAPI(sys, prompt);
       setResult(data);
+      await syncToSupabase('onboardings', {
+        client_nom: `${form.prenom}${form.entreprise ? ` — ${form.entreprise}` : ''}`,
+        offre: form.offre || '', date_debut: form.dateDebut || new Date().toISOString().slice(0,10),
+        contrat_genere: true, email_genere: false, roadmap_generee: false, checklist_generee: false,
+      }, 'onboarding');
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -465,6 +489,12 @@ function ModuleRoadmap({ onToast }) {
       const prompt = `Client: ${form.prenom}${form.entreprise ? ` (${form.entreprise})` : ''} | Secteur: ${form.secteur || 'TPE/PME'} | Offre: ${offre} | Piliers prioritaires: ${piliers} | Contexte: ${form.contexte || 'non précisé'}. Génère la feuille de route personnalisée.`;
       const data = await callAPI(sys, prompt);
       setResult(data);
+      await syncToSupabase('onboardings', {
+        client_nom: `${form.prenom}${form.entreprise ? ` — ${form.entreprise}` : ''}`,
+        offre: form.offre || '', date_debut: form.dateDebut || new Date().toISOString().slice(0,10),
+        roadmap_generee: true, email_genere: false, contrat_genere: false, checklist_generee: false,
+        piliers_prioritaires: (form.piliers || []).join(','),
+      }, 'onboarding');
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -566,6 +596,11 @@ function ModuleChecklist({ onToast }) {
       const prompt = `Client: ${form.prenom}${form.entreprise ? ` (${form.entreprise})` : ''} | Offre: ${offre} | Secteur: ${form.secteur || 'TPE/PME'} | Contexte: ${form.contexte || 'démarrage standard'}. Génère la checklist d'onboarding.`;
       const data = await callAPI(sys, prompt);
       setResult(data);
+      await syncToSupabase('onboardings', {
+        client_nom: `${form.prenom}${form.entreprise ? ` — ${form.entreprise}` : ''}`,
+        offre: form.offre || '', date_debut: form.dateDebut || new Date().toISOString().slice(0,10),
+        checklist_generee: true, email_genere: false, contrat_genere: false, roadmap_generee: false,
+      }, 'onboarding');
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
